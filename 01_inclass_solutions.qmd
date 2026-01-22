@@ -1,105 +1,85 @@
 ---
-title: "Learn R Part I In-class Solutions"
+title: "Learn R Part II In-class Exercises"
 format: html
 editor: visual
 ---
 
-Welcome to your first Quarto document! This is where you will try out all of the hands-on exercises in the workshop.
+Welcome to Quarto! This is where you will try out all of the hands-on exercises in the workshop. Begin by running these first two code chunks:
 
 ```{r}
 # load packages
 library(tidyverse)
 ```
 
-## 05. How do I write and run code in a coding notebook?
-
-Write and run code that finds the square root of 60
-
-Hint: the square root function in R is `sqrt()`
-
 ```{r}
-# find sq root
-sqrt(60)
-```
-
-## 06. What is an object and how do I create one?
-
-Create an object called `my_age` that stores your age, then call the object so it prints to the Console.
-
-```{r}
-# store age
-my_age <- 32
-
-# call age
-my_age
-```
-
-## 08. How do I import data?
-
-Load the David Bowie data using `read_csv()`. You can name your data frame object `bowie`
-
-```{r}
-# import data
+# load data
 bowie <- read_csv("data/david_bowie_spotify.csv")
+nat_parks <- read_csv("data/nat_parks_visitors.csv")
 ```
 
-## 09. How can I get to know my variables?
+## 00. Quick review
 
-Using `summary()`, determine whether the mean or median of `energy` is greater.
+Using an `if_else()` statement, create a new variable in `bowie` that indicates if a song is "long" or "short". Name the variable `long_short`.
+
+Songs are considered "long" if `duration_sec` is greater than 250.
 
 ```{r}
-# look at danceability
-summary(bowie$energy)
+# add a new long_short variable
+bowie <- bowie |> 
+  mutate(long_short = if_else(duration_sec > 250,
+                              "long",
+                              "short"))
 ```
 
-The median is larger than the mean (.71 vs. .66)
+## 01. How do I aggregate by collapsing?
 
-## 10. What are some ways I can transform my data?
+Using `group_by()` and `summarise()`, calculate average `danceability` by `long_short`.
 
-### 10.1 Subset rows with `filter()`
-
-Filter `bowie` to only contain songs that are *NOT* on the "Low" album
+On average, are David Bowie's longer or shorter songs more "danceable"?
 
 ```{r}
-# exclude Low album
+# collapse by long_short
 bowie |> 
-  filter(album != "Low")
+  group_by(long_short) |> 
+  summarise(avg_dance = mean(danceability))
 ```
 
-### 10.2 Subset columns with `select()`
+*On average, David Bowie's shorter songs are slightly more danceable than his longer songs (.52 vs. .50)*
 
-Limit the columns in `bowie` to only include `track` and `speechiness`
+## 02. How do I aggregate *without* collapsing?
+
+Alter the `bowie` data frame to add a variable that calculates average `tempo` by `album` (without collapsing).
+
+Bonus: Can you determine if the tempo of the song "Changes" is higher or lower than the "Hunky Dory" album average?
 
 ```{r}
-# limit columns
+# calculate average tempo by album (no collapse)
+bowie <- bowie |> 
+  group_by(album) |> 
+  mutate(avg_tempo = mean(tempo))
+
+# bonus: find Changes and compare to album average
 bowie |> 
-  select(track, speechiness)
+  select(track, album, tempo, avg_tempo) |> 
+  filter(track == "Changes")
 ```
 
-### 10.3 Sort rows with `arrange()`
+*The song "Changes" has a lower tempo than the "Hunky Dory" album average (113 vs. 119).*
 
-Find the 3 most popular David Bowie songs (according to Spotify)
+## 03. How do I tidy data?
 
-*Hint:* Browse the environment pane for the variable that measures this (it's at the bottom)
+Pivot the `nat_parks` data frame longer so that year and visitors each make a column.
 
-```{r}
-# most popular songs
-bowie |> 
-  arrange(-popularity) |> 
-  select(track, popularity)
-```
+Hint: Pivot the year columns only. To specify them, you can use either of these structures:
 
-"Starman", "Heroes", and "Rebel Rebel"
+`cols = start:stop`
 
-### 10.4 Create new variables with `mutate()`
-
-Create a new variable in `bowie` that multiplies `danceability` by 100 (you pick the name of the new variable), then limit your columns to `track`, `danceability`, and your new variable.
-
-Note: The symbol for multiplication in R is `*`
+`cols = -c(column1, column2`)
 
 ```{r}
-# create new variable
-bowie |> 
-  mutate(dance100 = danceability * 100) |> 
-  select(track, danceability, dance100)
+# pivot years longer
+nat_parks_long <- nat_parks |> 
+  pivot_longer(cols = -c(park, state),
+               names_to = "year",
+               values_to = "visitors")
 ```
